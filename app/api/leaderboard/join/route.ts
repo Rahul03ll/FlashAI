@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getLevel } from "@/lib/gamification";
 import { NextResponse } from "next/server";
 
 const joinSchema = z.object({
@@ -33,10 +34,13 @@ export async function POST(request: Request) {
     const user = await prisma.user.update({
       where: { id: userId },
       data: { displayName },
-      select: { id: true, displayName: true, xp: true, streak: true, level: true },
+      select: { id: true, displayName: true, xp: true, streak: true },
     });
 
-    return NextResponse.json({ success: true, user });
+    return NextResponse.json({
+      success: true,
+      user: { ...user, level: getLevel(user.xp) },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
     return NextResponse.json({ error: message }, { status: 500 });
