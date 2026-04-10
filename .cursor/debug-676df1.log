@@ -1,0 +1,1 @@
+{"sessionId":"676df1","runId":"pre-fix","hypothesisId":"H3","location":"app/api/generate/route.ts:stream-catch","message":"stream generation failure","data":{"error":"Missing GROQ_API_KEY environment variable."},"timestamp":1775752807311}

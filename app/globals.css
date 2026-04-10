@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #0a0a0f;
+    background-color: #f7f5f0;
+    /* Type scale — used as CSS custom properties so Tailwind classes still override */
+    --text-xs: 0.75rem;     /* 12px */
+    --text-sm: 0.875rem;    /* 14px */
+    --text-base: 1rem;      /* 16px */
+    --text-lg: 1.125rem;    /* 18px */
+    --text-xl: 1.25rem;     /* 20px */
+    --text-2xl: 1.5rem;     /* 24px */
+    --text-3xl: 1.875rem;   /* 30px */
+    --text-4xl: 2.25rem;    /* 36px */
+    --text-5xl: 3rem;       /* 48px */
+  }
+
+  body {
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    font-size: 1rem;          /* 16px explicit */
+    line-height: 1.7;         /* generous body leading */
+    background: #f7f5f0;
+    color: #0a0a0f;
+    font-feature-settings: "kern", "liga", "calt";
+  }
+
+  /* Base heading scale — Tailwind's text-* classes override per component */
+  h1 {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: clamp(2.25rem, 5vw, 3.75rem); /* 36px → 60px fluid */
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: 1.5rem;   /* 24px */
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: 1.25rem;  /* 20px */
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+  h4 {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  /* Body text rhythm */
+  p {
+    line-height: 1.7;
+  }
+
+  /* Small labels and captions */
+  small, .text-xs, .text-sm {
+    line-height: 1.5;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f7f5f0;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d1cec6;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #b0ada6;
+  }
+
+  /* Text selection */
+  ::selection {
+    background-color: #5b4fff;
+    color: #ffffff;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid #5b4fff;
+    outline-offset: 2px;
+  }
+}
+
+body {
+  @apply antialiased;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.soft-card {
+  box-shadow: 0 18px 45px rgba(10, 10, 15, 0.08);
+  border-radius: 1rem;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0ece2 25%, #ebe6dc 37%, #f0ece2 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.3s ease infinite;
+}
+
+.global-noise {
+  background-image: radial-gradient(circle at 1px 1px, #000 0.7px, transparent 0);
+  background-size: 3px 3px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@layer utilities {
+  .border-comic {
+    border: 2px solid #0a0a0f;
+  }
+}
