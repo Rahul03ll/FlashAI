@@ -14,7 +14,6 @@
 7. [Security Model](#security-model)
 8. [Deployment Guide](#deployment-guide)
 9. [What Was Tried, What Broke](#what-was-tried-what-broke)
-10. [Evaluation Criteria Checklist](#evaluation-criteria-checklist)
 
 ---
 
