@@ -227,17 +227,3 @@ DATABASE_URL="<neon-url>" npx prisma migrate deploy
 
 ---
 
-## Evaluation Criteria Checklist
-
-| Criterion | Status | Evidence |
-|---|---|---|
-| **Functional** — works end-to-end | ✅ | 28/28 API regression tests pass |
-| **Deployed** | 📋 | See Deployment Guide above |
-| **Demonstrable** | ✅ | Demo deck seeded via `POST /api/demo-deck` |
-| 5 card types generated | ✅ | Prompt enforces ≥3 per type with few-shot anchors |
-| SM-2 scheduling | ✅ | `lib/sm2.ts` — 3-quality variant (easy/good/hard) |
-| Progress feedback | ✅ | ProgressBar, ConfidenceHeatmap, ReviewForecast, XP level bar |
-| Deck search | ✅ | DeckList search input with highlight |
-| Delight | ✅ | Confetti, XP bar, streaks, floating cards, swipe gestures |
-| Security | ✅ | All secrets server-only; file-size guard; Prisma parameterized queries |
-| No secrets in client bundle | ✅ | Verified — no `NEXT_PUBLIC_` on API keys |
