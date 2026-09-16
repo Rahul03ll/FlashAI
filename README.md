@@ -1,4 +1,4 @@
-# ⚡ FlashAI — AI-Powered Spaced-Repetition Study Engine
+# ⚡ FlashAI — AI-Powered Spaced-Repetition Study Engine- [Demo](https://flash-ai-topaz.vercel.app/)
 
 > Upload a PDF → get 15–20 exam-quality flashcards in seconds → let SM-2 keep them in your head for good.
 
