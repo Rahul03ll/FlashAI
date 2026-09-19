@@ -1,6 +1,17 @@
-# ⚡ FlashAI — AI-Powered Spaced-Repetition Study Engine- [Demo](https://flash-ai-topaz.vercel.app/)
+# ⚡ FlashAI — AI-Powered Spaced-Repetition Study Engine
 
-> Upload a PDF → get 15–20 exam-quality flashcards in seconds → let SM-2 keep them in your head for good.
+[![Live Demo](https://img.shields.io/badge/Vercel-Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://flash-ai-topaz.vercel.app/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.2-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Groq](https://img.shields.io/badge/Groq-LPU_Fast_Inference-f55036?style=for-the-badge)](https://groq.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.6-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+> **Upload a PDF → get 15–20 exam-quality flashcards in seconds → let SM-2 keep them in your head for good.**
+>
+> 🔗 **Live Deployment**: [https://flash-ai-topaz.vercel.app/](https://flash-ai-topaz.vercel.app/)
 
 ---
 
@@ -14,77 +25,99 @@
 7. [Security Model](#security-model)
 8. [Deployment Guide](#deployment-guide)
 9. [What Was Tried, What Broke](#what-was-tried-what-broke)
+10. [Author & Contact](#author--contact)
 
 ---
 
 ## What It Does
 
-FlashAI solves the "PDF graveyard" problem — students download notes, never review them, and forget everything before exams. The pipeline:
+FlashAI solves the "PDF graveyard" problem — students download lecture slides and notes, never review them, and cram unsuccessfully before exams. FlashAI's real-time pipeline transforms passive reading into active recall:
 
 ```
-PDF upload → text extraction (pdf-parse) → Groq LLM streaming
-  → 5 card types (definition / reasoning / misconception / example / edge)
-  → SM-2 spaced repetition scheduling
+PDF upload → text extraction (pdf-parse) → Groq LLM streaming (NDJSON)
+  → 5 card cognitive types (definition / reasoning / misconception / example / edge case)
+  → SuperMemo SM-2 spaced repetition scheduling
   → Gamification (XP, streaks, leaderboard)
-  → Quiz mode with AI-generated distractors
+  → Interactive Quiz mode with AI-generated distractors
 ```
 
 ---
 
 ## Quick Start
 
+### 1. Prerequisites
+- **Node.js**: v18.18+ or v20+
+- **Groq API Key**: Free tier available at [console.groq.com](https://console.groq.com)
+- **PostgreSQL Database**: Free tier available on [Neon](https://neon.tech), [Supabase](https://supabase.com), or local Postgres
+
+### 2. Installation & Setup
+
 ```bash
-# 1. Clone and install
-git clone <repo-url> && cd Brain
-npm install          # also runs `prisma generate` via postinstall
+# 1. Clone the repository and enter the directory
+git clone https://github.com/Rahul03ll/FlashAI.git
+cd FlashAI
 
-# 2. Environment
+# 2. Install dependencies (runs prisma generate via postinstall)
+npm install
+
+# 3. Configure environment variables
 cp .env.example .env.local
-# Edit .env.local: set GROQ_API_KEY (free at console.groq.com)
-# DATABASE_URL defaults to SQLite — no extra setup needed locally
-
-# 3. Database
-npx prisma migrate dev --name init
-
-# 4. Run
-npm run dev          # → http://localhost:3000
 ```
+
+Edit `.env.local` with your database credentials and API key:
+```env
+DATABASE_URL="postgresql://user:password@ep-xyz.neon.tech/flashai?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://user:password@ep-xyz.neon.tech/flashai?sslmode=require"
+GROQ_API_KEY="gsk_..."
+```
+
+### 3. Initialize Database & Run
+
+```bash
+# Push database schema
+npx prisma db push
+
+# Start the local development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Browser (Next.js App Router — React Server Components) │
-│                                                     │
-│  app/page.tsx          → Hero + CardStackPreview    │
-│  app/upload/page.tsx   → UploadZone (streaming SSE) │
-│  app/dashboard/page.tsx→ Stats, DeckList (+ search) │
-│  app/deck/[id]/page.tsx→ DeckStudyClient (SM-2 UI)  │
-│  app/quiz/[id]/page.tsx→ QuizClient (MC questions)  │
-│  app/leaderboard/page  → LeaderboardClient          │
-│  app/share/[token]     → Read-only shared deck view │
-└───────────────────┬─────────────────────────────────┘
-                    │ fetch / streaming
-┌───────────────────▼─────────────────────────────────┐
-│  Next.js API Routes (Node.js — server only)         │
-│                                                     │
-│  POST /api/generate     → PDF → Groq → NDJSON stream│
-│  POST /api/demo-deck    → seed 10 sample cards      │
-│  GET/DELETE /api/deck/[id]                          │
-│  POST /api/deck/[id]/share                          │
-│  PATCH /api/card/[id]   → persist SM-2 state        │
-│  POST /api/gamify/action→ atomic XP/streak update   │
-│  GET  /api/leaderboard                              │
-│  POST /api/explain      → Groq single-turn explain  │
-│  POST /api/quiz/[id]    → Groq distractor generation│
-└───────────────────┬─────────────────────────────────┘
-                    │ Prisma ORM
-┌───────────────────▼─────────────────────────────────┐
-│  Database: SQLite (dev) / PostgreSQL (prod)          │
-│  Models: User · Deck · Flashcard                    │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│   Browser (Next.js App Router — React Server Components)│
+│                                                         │
+│   app/page.tsx          → Hero + CardStackPreview       │
+│   app/upload/page.tsx   → UploadZone (streaming SSE)    │
+│   app/dashboard/page.tsx→ Stats, DeckList (+ search)    │
+│   app/deck/[id]/page.tsx→ DeckStudyClient (SM-2 UI)     │
+│   app/quiz/[id]/page.tsx→ QuizClient (MC questions)     │
+│   app/leaderboard/page  → LeaderboardClient             │
+│   app/share/[token]     → Read-only shared deck view    │
+└───────────────────────────┬─────────────────────────────┘
+                            │ fetch / NDJSON streaming
+┌───────────────────────────▼─────────────────────────────┐
+│   Next.js API Routes (Node.js — server only)            │
+│                                                         │
+│   POST /api/generate     → PDF → Groq → NDJSON stream   │
+│   POST /api/demo-deck    → seed 10 sample cards         │
+│   GET/DELETE /api/deck/[id]                             │
+│   POST /api/deck/[id]/share                             │
+│   PATCH /api/card/[id]   → persist SM-2 state           │
+│   POST /api/gamify/action→ atomic XP/streak update      │
+│   GET  /api/leaderboard                                 │
+│   POST /api/explain      → Groq single-turn explain     │
+│   POST /api/quiz/[id]    → Groq distractor generation   │
+└───────────────────────────┬─────────────────────────────┘
+                            │ Prisma ORM
+┌───────────────────────────▼─────────────────────────────┐
+│   Database: PostgreSQL (Neon / Supabase / Render)       │
+│   Models: User · Deck · Flashcard                       │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -94,63 +127,59 @@ npm run dev          # → http://localhost:3000
 ### Why SM-2 (not a neural scheduler)?
 
 SM-2 was chosen over modern alternatives (FSRS, Anki's v3) for three reasons:
-1. **Interpretability** — students can understand *why* a card is due; "your ease factor dropped" is meaningful feedback.
-2. **No training data** — FSRS requires per-user history to converge; new users get bad schedules for weeks.
-3. **Simplicity** — the entire algorithm is 30 lines of TypeScript with zero dependencies.
+1. **Interpretability** — students can understand *why* a card is due; "your ease factor dropped" provides meaningful feedback.
+2. **No training data required** — FSRS requires per-user history to converge; new users get poor schedules for weeks.
+3. **Simplicity** — the entire algorithm is self-contained in 30 lines of TypeScript with zero third-party dependencies.
 
-**Tradeoff accepted:** SM-2 over-schedules easy cards and under-schedules hard ones compared to FSRS. For a tool used over days/weeks (not months) this is acceptable.
+**Tradeoff accepted:** SM-2 over-schedules easy cards and under-schedules hard ones compared to FSRS. For a study tool used over days and weeks leading to exams, this bias favors retention.
 
-**SM-2 quality differentiation:** Standard SM-2 uses quality ratings 0–5. We map our 3-button UI to three quality levels:
+**SM-2 quality differentiation:** Standard SM-2 uses quality ratings 0–5. We map our intuitive 3-button study UI:
 - `easy` (q=5) → ease +0.10 (reward confident recall)
-- `good` (q=4) → ease ±0.00 (correct with hesitation — SM-2 canonical formula gives delta ≈ 0)
+- `good` (q=4) → ease ±0.00 (correct with hesitation — SM-2 canonical formula delta ≈ 0)
 - `hard` (q=2) → ease −0.20, interval resets to 1 day
 
 ### Why Groq + llama-3.3-70b-versatile (not GPT-4)?
 
-- **Speed:** Groq's LPU inference delivers ~500 tok/s vs ~50 tok/s on OpenAI — streaming starts in <1s.
-- **Cost:** Free tier is sufficient for demo/evaluation use.
-- **Tradeoff accepted:** Context window (128k) is smaller than GPT-4 Turbo (1M). We cap PDF text at 12,000 chars to stay well within limits.
+- **Speed:** Groq's LPU inference delivers ~500 tok/s vs ~50 tok/s on conventional cloud endpoints — streaming starts in <1s.
+- **Cost:** Free tier is sufficient for demo, classroom, and portfolio evaluation.
+- **Tradeoff accepted:** Context window (128k) is bounded. We cap extracted PDF text at 12,000 characters to prevent latency spikes while capturing core lecture sections.
 
 ### Why NDJSON streaming (not JSON array)?
 
-The alternative was to wait for all 20 cards to be generated before responding (~8–12s). NDJSON lets us flush each card as it's generated — the first card appears in ~1s, creating a "live generation" feel that tests showed significantly increases perceived responsiveness.
+The alternative was to wait for all 20 cards to be generated before responding (~8–12s). NDJSON lets us flush each card as it's generated — the first card appears in ~1s, creating a "live generation" feel that significantly increases perceived responsiveness.
 
-**What broke:** The first implementation used SSE (`data:` prefix). Parsing SSE in the browser while also handling errors proved brittle. Switching to raw NDJSON lines (one JSON object per line) simplified both server and client to a `for await` loop.
+**What broke:** The initial prototype used SSE (`data:` prefix). Parsing SSE in the browser while also handling intermittent connection resets was brittle. Switching to raw NDJSON lines (one JSON object per line) simplified both server emission and client consumption via a standard `for await` reader stream.
 
-### Why SQLite locally / PostgreSQL in production?
+### Why anonymous userId via localStorage?
 
-SQLite requires zero installation, zero network latency, and zero cost for local development. The Prisma schema has a single-line provider switch (`"sqlite"` → `"postgresql"`) for production. This keeps the contributor experience friction-free while giving production the scalability and connection pooling of Postgres.
-
-### Why anonymous userId via localStorage (no auth)?
-
-Auth (Clerk, NextAuth, Supabase Auth) adds significant surface area for a demo evaluation. The localStorage `flashai_user_id` gives each browser session a stable identity without login friction. The security implication is acknowledged: any user can impersonate any userId by sending it in a POST body. For a production v2, we would add NextAuth with GitHub/Google sign-in.
+Authentication (Clerk, NextAuth, Supabase Auth) adds onboarding friction for a portfolio evaluation. The localStorage `flashai_user_id` gives each browser session a stable identity without login barriers. The security implication is acknowledged: client IDs can be manipulated. For a multi-tenant production environment, NextAuth with Google/GitHub OAuth can be layered on top.
 
 ---
 
 ## Feature Deep-Dives
 
-### Ingestion Quality (5 Card Types)
+### Ingestion Quality (5 Cognitive Card Types)
 
-The Groq prompt enforces a **minimum distribution**:
-- ≥3 definition cards
-- ≥3 reasoning ("why/how") cards
-- ≥3 misconception cards (name the wrong belief, then correct it)
-- ≥3 example cards (step-by-step worked examples)
-- ≥2 edge-case cards (boundary conditions, failure modes)
+The Groq generation prompt enforces a structured distribution across 5 cognitive levels:
+- **≥3 Definition cards**: Core terminology and foundational concepts.
+- **≥3 Reasoning ("why/how") cards**: Causal chains and systemic mechanisms.
+- **≥3 Misconception cards**: Common exam pitfalls, explicitly disproving wrong assumptions.
+- **≥3 Example cards**: Step-by-step worked solutions.
+- **≥2 Edge-case cards**: Boundary conditions and failure modes.
 
-The prompt also includes **one few-shot example per type** to anchor the model's output format and quality level. Without few-shot examples, the model tends to write shallow one-liner answers.
+The prompt includes **few-shot examples per type** to anchor output depth and prevent shallow single-line answers.
 
-### SM-2 Scheduling
+### SM-2 Adaptive Scheduling
 
-Cards are sorted by `dueDate ASC` in the database query. The client further filters to only cards where `dueDate ≤ now`. After each answer, the SM-2 result is persisted via `PATCH /api/card/:id`. The `difficultyScore` field increments on hard answers and decrements on correct answers — used by the ConfidenceHeatmap to color struggling cards red.
+Cards are queried ordered by `dueDate ASC`. The client filters cards where `dueDate ≤ now`. Following user interaction, the updated intervals are persisted via `PATCH /api/card/:id`. A `difficultyScore` counter dynamically highlights struggling concepts on the **Confidence Heatmap** in red.
 
-### Deck Search
+### Deck Search & Filtering
 
-The DeckList component is a client component with a controlled `<input type="search">` that filters by title and source PDF filename in-memory using `useMemo`. Matching text is highlighted with a `<mark>` element styled with the design system's `warn/30` amber tone.
+The `DeckList` component provides instant, in-memory search filtering across deck titles and source PDF filenames. Matching terms are highlighted with custom styled `<mark>` elements.
 
 ### Quiz Mode
 
-For each card, the API calls Groq to generate 3 plausible wrong answers (distractors). If any individual card's distractor generation fails, a fallback array of generic distractors is used so the overall quiz never breaks. The correct answer is randomly inserted among the distractors.
+For each flashcard, Groq dynamically generates 3 plausible wrong answers (distractors). If any individual card's distractor generation fails, a fallback distractor set guarantees the quiz session remains uninterrupted.
 
 ---
 
@@ -158,71 +187,75 @@ For each card, the API calls Groq to generate 3 plausible wrong answers (distrac
 
 | Feature | Implementation |
 |---|---|
-| Live card generation | NDJSON streaming — first card visible in ~1s |
-| Card flip animation | CSS `transform-style: preserve-3d` + Framer Motion `rotateY` |
-| Swipe to answer | Framer Motion `drag="x"` with velocity + offset threshold |
-| XP level progress bar | Animated `motion.div` width tracks % toward Learner/Master |
-| Streak counter | Resets daily via `lastActiveDay` date comparison |
-| Floating card stack | Infinite CSS keyframe `translateY` with staggered delay |
-| Search highlight | Inline `<mark>` wrapping around matched substring |
-| Confetti | `canvas-confetti` fires on session completion |
-| Leaderboard medals | 🥇🥈🥉 emoji for top-3 positions |
+| **Live Card Streaming** | NDJSON streaming — first card visible in ~1s |
+| **Card Flip Animation** | CSS `transform-style: preserve-3d` + Framer Motion `rotateY` |
+| **Swipe to Answer** | Framer Motion `drag="x"` with velocity + offset thresholds |
+| **XP Level Progress** | Animated `motion.div` width tracks progress toward Learner/Master tiers |
+| **Streak Tracker** | Daily rollover calculated via `lastActiveDay` comparison |
+| **Floating Card Stack** | Infinite CSS keyframe `translateY` with staggered delay |
+| **Search Highlighting** | Inline `<mark>` wrapping around search query substring |
+| **Celebratory Confetti**| `canvas-confetti` triggered upon deck review completion |
+| **Leaderboard Medals** | Dynamic 🥇🥈🥉 badges for top rankings |
 
 ---
 
 ## Security Model
 
-| Concern | Status |
-|---|---|
-| `GROQ_API_KEY` exposed to browser | ✅ Never — no `NEXT_PUBLIC_` prefix; only imported in server-side `lib/groq.ts` |
-| `DATABASE_URL` exposed | ✅ Never — server-only Prisma import |
-| AI calls from client | ✅ Never — all Groq calls go through API routes |
-| SQL injection | ✅ Prisma parameterizes all queries |
-| File upload abuse | ✅ MIME-type check (`application/pdf`) + 10 MB size guard returns 413 |
-| userId spoofing | ⚠️ By design — no auth system. Production would add NextAuth. |
-| Rate limiting | ⚠️ Not implemented. Production would add Upstash Redis rate limiting. |
+| Concern | Status | Mechanism |
+|---|---|---|
+| `GROQ_API_KEY` exposure | ✅ Secure | Strictly server-side in `lib/groq.ts`; never prefixed with `NEXT_PUBLIC_` |
+| `DATABASE_URL` exposure | ✅ Secure | Restricted to server-side Prisma client queries |
+| Direct client AI calls | ✅ Secure | All AI queries routed through protected Next.js API endpoints |
+| SQL Injection | ✅ Secure | Prisma ORM parameterizes all SQL queries |
+| File Upload Abuse | ✅ Secure | MIME-type validation (`application/pdf`) + 10MB payload cap returns HTTP 413 |
+| User impersonation | ⚠️ By Design | Anonymous session keys in localStorage; easily upgradable to NextAuth |
 
 ---
 
 ## Deployment Guide
 
-### Vercel + Neon (recommended — both free tier)
+### Vercel + Neon (Recommended)
 
-```bash
-# 1. Create a Neon database at https://neon.tech
-#    Copy the connection string (it looks like:
-#    postgresql://user:pass@ep-xxx.neon.tech/braindb?sslmode=require)
+1. **Database Setup**:
+   - Provision a PostgreSQL database on [Neon](https://neon.tech).
+   - Copy the pooled and unpooled connection strings.
 
-# 2. Update prisma/schema.prisma:
-#    provider = "postgresql"
+2. **Deploy to Vercel**:
+   - Push repository to GitHub.
+   - Import the project into the [Vercel Dashboard](https://vercel.com).
+   - Add environment variables:
+     - `DATABASE_URL`: Your pooled PostgreSQL connection string.
+     - `DATABASE_URL_UNPOOLED`: Your direct PostgreSQL connection string.
+     - `GROQ_API_KEY`: Your Groq API key (`gsk_...`).
 
-# 3. Run migrations against Neon
-DATABASE_URL="<neon-url>" npx prisma migrate deploy
-
-# 4. Push to GitHub, import project in Vercel dashboard
-#    Set environment variables:
-#      DATABASE_URL  = <neon-url>
-#      GROQ_API_KEY  = gsk_...
-
-# 5. Build command (auto-detected from package.json):
-#    prisma generate && next build
-```
-
-`vercel.json` is included to set `maxDuration=60` and `memory=1024` for the PDF generation route, which would otherwise time out on Vercel's default 10s serverless limit.
+3. **Deploy & Migrate**:
+   - Vercel automatically runs `prisma generate && next build`.
+   - Run `npx prisma migrate deploy` (or `npx prisma db push`) against the Neon instance.
 
 ---
 
 ## What Was Tried, What Broke
 
-| What was tried | What happened | How it was fixed |
+| What Was Tried | What Happened | How It Was Fixed |
 |---|---|---|
-| `llama3-70b-8192` model | Groq returned 503 (model deprecated) | Migrated to `llama-3.3-70b-versatile` |
-| SSE streaming for card generation | Parsing `data:` prefix was fragile; browser couldn't distinguish end-of-stream from network error | Switched to raw NDJSON — one JSON per line, connection close = done |
-| `motion.button` wrapping the 3D flip card | `transform` on a button element flattened the 3D context — the card appeared to flip but both faces were visible | Moved perspective and rotation to `motion.div`; kept button for accessibility |
-| PostgreSQL for local dev | Required external service setup, breaking first-run experience | SQLite for local dev, PostgreSQL for production (single schema line change) |
-| Snapshot-based XP update (`xp: existing + gained`) | Race condition under rapid clicks lost points | Switched to Prisma atomic `{ increment: n }` |
-| `window.setTimeout` in QuizClient | `window` not available in SSR environments | Removed `window.` prefix — `setTimeout` is a global in Node.js too |
-| SM-2 ease factor unbounded growth | Cards due every 3 years after 50 easy ratings | Capped ease at 3.0 (≈ max useful interval multiplier) |
+| `llama3-70b-8192` model | Groq returned 503 (model deprecated) | Upgraded to `llama-3.3-70b-versatile` |
+| SSE streaming for cards | Fragile event parsing; couldn't distinguish stream close from error | Switched to raw NDJSON lines; connection close signals completion |
+| `motion.button` 3D card | `transform` flattened 3D perspective, making both faces visible | Shifted perspective and rotation to parent `motion.div` |
+| SQLite for cloud deploy | Serverless environments (Vercel) have ephemeral filesystems | Configured PostgreSQL (Neon) with connection pooling |
+| Snapshot-based XP update | Rapid successive clicks caused lost-update race conditions | Switched to Prisma atomic updates: `{ increment: n }` |
+| `window.setTimeout` in Quiz | Broke during Next.js server-side rendering (SSR) | Used global `setTimeout` compatible with Node and browser |
+| Unbounded SM-2 ease growth | Cards scheduled years away after repeated easy answers | Capped ease at 3.0 (practical upper boundary) |
 
 ---
 
+## Author & Contact
+
+**Rahul Roy**  
+*Final-Year B.Tech CSE @ KIIT University | SDE & Data/AI Engineer*  
+- 🌐 **Portfolio / GitHub**: [@Rahul03ll](https://github.com/Rahul03ll)
+- 🔗 **LinkedIn**: [linkedin.com/in/rahul-roy-362a12256](https://linkedin.com/in/rahul-roy-362a12256)
+- 📧 **Email**: [rahulroy2259@gmail.com](mailto:rahulroy2259@gmail.com)
+
+---
+
+⭐ If you find FlashAI helpful, consider starring the repository on [GitHub](https://github.com/Rahul03ll/FlashAI)!

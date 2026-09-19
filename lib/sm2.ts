@@ -35,6 +35,8 @@ export function applySm2(card: Flashcard, quality: StudyQuality): Flashcard {
   }
 
   // Good or Easy → correct answer, schedule next interval
+  // Cap at 365 days (1 year) to prevent geometric date overflow on repeated easy reviews
+  const MAX_INTERVAL_DAYS = 365;
   const repetitions = card.repetitions + 1;
   let interval: number;
   if (repetitions === 1) {
@@ -42,7 +44,7 @@ export function applySm2(card: Flashcard, quality: StudyQuality): Flashcard {
   } else if (repetitions === 2) {
     interval = 6;
   } else {
-    interval = Math.round(card.interval * card.ease);
+    interval = Math.min(MAX_INTERVAL_DAYS, Math.round(card.interval * card.ease));
   }
 
   // Easy: ease grows; Good: ease stays neutral (SM-2 q=4 delta ≈ 0)
