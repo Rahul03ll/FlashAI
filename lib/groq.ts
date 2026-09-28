@@ -26,30 +26,32 @@ export function getGroqClient(): Groq {
   return _groqClient;
 }
 
+type CreateParams = Parameters<Groq["chat"]["completions"]["create"]>[0];
+
 /**
  * Executes a chat completion across the prioritized fallback models if
  * the primary model is deprecated or unavailable (e.g. 404 model_not_found).
  */
 async function createChatCompletionWithFallback(
   groq: Groq,
-  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream: true },
+  params: Omit<CreateParams, "model"> & { stream: true },
 ): Promise<AsyncIterable<ChatCompletionChunk>>;
 async function createChatCompletionWithFallback(
   groq: Groq,
-  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream?: false },
+  params: Omit<CreateParams, "model"> & { stream?: false },
 ): Promise<Groq.Chat.ChatCompletion>;
 async function createChatCompletionWithFallback(
   groq: Groq,
-  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream?: boolean },
-) {
+  params: Omit<CreateParams, "model"> & { stream?: boolean },
+): Promise<AsyncIterable<ChatCompletionChunk> | Groq.Chat.ChatCompletion> {
   let lastError: unknown;
 
   for (const model of FALLBACK_MODELS) {
     try {
-      const response = await groq.chat.completions.create({
+      const response = await (groq.chat.completions.create as Function)({
         ...params,
         model,
-      } as Groq.Chat.CompletionCreateParams);
+      });
       return response;
     } catch (err: unknown) {
       lastError = err;

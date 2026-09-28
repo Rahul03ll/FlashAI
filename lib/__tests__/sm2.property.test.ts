@@ -1,4 +1,4 @@
-import { describe, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { applySm2, makeInitialSm2Card } from "../sm2";
 import type { Flashcard } from "@/types/flashcard";
