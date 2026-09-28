@@ -138,11 +138,12 @@ SM-2 was chosen over modern alternatives (FSRS, Anki's v3) for three reasons:
 - `good` (q=4) → ease ±0.00 (correct with hesitation — SM-2 canonical formula delta ≈ 0)
 - `hard` (q=2) → ease −0.20, interval resets to 1 day
 
-### Why Groq + llama-3.3-70b-versatile (not GPT-4)?
+### Why Groq LPU Inference (not GPT-4)?
 
-- **Speed:** Groq's LPU inference delivers ~500 tok/s vs ~50 tok/s on conventional cloud endpoints — streaming starts in <1s.
+- **Speed:** Groq's custom LPU inference delivers extreme token throughput vs ~50 tok/s on conventional cloud endpoints — streaming starts in <1s.
 - **Cost:** Free tier is sufficient for demo, classroom, and portfolio evaluation.
-- **Tradeoff accepted:** Context window (128k) is bounded. We cap extracted PDF text at 12,000 characters to prevent latency spikes while capturing core lecture sections.
+- **Resilience:** Built-in multi-model fallback cascade across active high-capacity models (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`).
+- **Tradeoff accepted:** Context window is bounded. We cap extracted PDF text at 12,000 characters to prevent latency spikes while capturing core lecture sections.
 
 ### Why NDJSON streaming (not JSON array)?
 
@@ -239,6 +240,8 @@ For each flashcard, Groq dynamically generates 3 plausible wrong answers (distra
 | What Was Tried | What Happened | How It Was Fixed |
 |---|---|---|
 | `llama3-70b-8192` model | Groq returned 503 (model deprecated) | Upgraded to `llama-3.3-70b-versatile` |
+| `llama-3.3-70b-versatile` model | Groq returned 404 (model deprecated/decommissioned) | Upgraded to `openai/gpt-oss-120b` with multi-model fallback cascade |
+| LLM markdown stream formatting | Trailing backslashes (`\`) and fences broke line-by-line JSON.parse | Added `sanitizeJsonLine` stream preprocessor and error propagation |
 | SSE streaming for cards | Fragile event parsing; couldn't distinguish stream close from error | Switched to raw NDJSON lines; connection close signals completion |
 | `motion.button` 3D card | `transform` flattened 3D perspective, making both faces visible | Shifted perspective and rotation to parent `motion.div` |
 | SQLite for cloud deploy | Serverless environments (Vercel) have ephemeral filesystems | Configured PostgreSQL (Neon) with connection pooling |

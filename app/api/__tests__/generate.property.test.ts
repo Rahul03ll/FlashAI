@@ -2,13 +2,15 @@ import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { generatedFlashcardSchema } from "@/types/flashcard";
 
+import { sanitizeJsonLine } from "@/lib/groq";
+
 // Pure helpers extracted from the generate route logic for testability
 
 function parseNdjsonBuffer(buffer: string): Array<{ question: string; answer: string; type: string }> {
   const results: Array<{ question: string; answer: string; type: string }> = [];
   const lines = buffer.split("\n");
   for (const rawLine of lines) {
-    const line = rawLine.trim();
+    const line = sanitizeJsonLine(rawLine);
     if (!line) continue;
     try {
       const parsed: unknown = JSON.parse(line);
@@ -91,5 +93,33 @@ describe("Generate API Property Tests", () => {
       }),
       { numRuns: 100 },
     );
+  });
+
+  it("handles LLM formatting quirks (trailing backslashes, code fences, commas)", () => {
+    expect(sanitizeJsonLine("```jsonl")).toBeNull();
+    expect(sanitizeJsonLine("```")).toBeNull();
+    expect(sanitizeJsonLine('  {"question":"What?","answer":"That.","type":"definition"}\\  ')).toBe(
+      '{"question":"What?","answer":"That.","type":"definition"}',
+    );
+    expect(sanitizeJsonLine('{"question":"What?","answer":"That.","type":"definition"},')).toBe(
+      '{"question":"What?","answer":"That.","type":"definition"}',
+    );
+    expect(sanitizeJsonLine('- {"question":"What?","answer":"That.","type":"definition"}')).toBe(
+      '{"question":"What?","answer":"That.","type":"definition"}',
+    );
+
+    const rawBufferWithGlitches = [
+      "```jsonl",
+      '{"question":"What is SM-2?","answer":"An algorithm for spaced repetition.","type":"definition"}\\',
+      '{"question":"Why use active recall?","answer":"Strengthens memory neural pathways.","type":"reasoning"},',
+      "- {\"question\":\"Is rereading enough?\",\"answer\":\"No, active recall is superior.\",\"type\":\"misconception\"}",
+      "```",
+    ].join("\n");
+
+    const parsed = parseNdjsonBuffer(rawBufferWithGlitches);
+    expect(parsed.length).toBe(3);
+    expect(parsed[0].type).toBe("definition");
+    expect(parsed[1].type).toBe("reasoning");
+    expect(parsed[2].type).toBe("misconception");
   });
 });

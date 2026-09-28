@@ -95,21 +95,31 @@ export default function UploadZone() {
       });
 
       if (!response.ok) {
-        const errorData: unknown = await response.json();
-        const message =
-          typeof errorData === "object" &&
-          errorData !== null &&
-          "error" in errorData &&
-          typeof (errorData as { error: unknown }).error === "string"
-            ? (errorData as { error: string }).error
-            : "Failed to generate flashcards.";
+        let message = "Failed to generate flashcards.";
+        try {
+          const errorData: unknown = await response.json();
+          if (
+            typeof errorData === "object" &&
+            errorData !== null &&
+            "error" in errorData &&
+            typeof (errorData as { error: unknown }).error === "string"
+          ) {
+            message = (errorData as { error: string }).error;
+          }
+        } catch {
+          message = `Server error (${response.status}: ${response.statusText || "Request failed"})`;
+        }
         setError(message);
         return;
       }
 
       await consumeStream(response);
-    } catch {
-      setError("Unexpected error while generating flashcards.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Unexpected error while generating flashcards.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

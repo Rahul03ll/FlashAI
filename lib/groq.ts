@@ -2,7 +2,14 @@ import Groq from "groq-sdk";
 import type { ChatCompletionChunk } from "groq-sdk/resources/chat/completions.mjs";
 
 /** Single source of truth for the model used across all Groq calls. */
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+export const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+const FALLBACK_MODELS = [
+  GROQ_MODEL,
+  "openai/gpt-oss-120b",
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-20b",
+].filter((m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx);
 
 // Module-level singleton — reuses the same TCP connection across requests.
 let _groqClient: Groq | null = null;
@@ -17,6 +24,62 @@ export function getGroqClient(): Groq {
 
   _groqClient = new Groq({ apiKey });
   return _groqClient;
+}
+
+/**
+ * Executes a chat completion across the prioritized fallback models if
+ * the primary model is deprecated or unavailable (e.g. 404 model_not_found).
+ */
+async function createChatCompletionWithFallback(
+  groq: Groq,
+  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream: true },
+): Promise<AsyncIterable<ChatCompletionChunk>>;
+async function createChatCompletionWithFallback(
+  groq: Groq,
+  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream?: false },
+): Promise<Groq.Chat.ChatCompletion>;
+async function createChatCompletionWithFallback(
+  groq: Groq,
+  params: Omit<Groq.Chat.CompletionCreateParams, "model"> & { stream?: boolean },
+) {
+  let lastError: unknown;
+
+  for (const model of FALLBACK_MODELS) {
+    try {
+      const response = await groq.chat.completions.create({
+        ...params,
+        model,
+      } as Groq.Chat.CompletionCreateParams);
+      return response;
+    } catch (err: unknown) {
+      lastError = err;
+      const isNotFound =
+        typeof err === "object" &&
+        err !== null &&
+        ("status" in err && (err as { status: number }).status === 404 ||
+          "code" in err && (err as { code: string }).code === "model_not_found");
+
+      if (isNotFound) {
+        console.warn(`[Groq] Model "${model}" unavailable, trying fallback...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError;
+}
+
+export function sanitizeJsonLine(raw: string): string | null {
+  let line = raw.trim();
+  if (!line) return null;
+  if (line.startsWith("```") || line === "```") return null;
+  line = line.replace(/^[-*•\d.]+\s+(?=\{)/, "");
+  line = line.replace(/\\+$/, "").trim();
+  if (line.endsWith(",") || line.endsWith(";")) {
+    line = line.slice(0, -1).trim();
+  }
+  return line;
 }
 
 export function buildFlashcardPrompt(text: string): string {
@@ -42,8 +105,8 @@ FEW-SHOT EXAMPLES (follow this style exactly):
 {"question":"Worked example: You rate a card 'Hard' three times in a row. What should you do?","answer":"1) Split the card into two simpler sub-cards. 2) Rewrite the question more concretely. 3) Add a mnemonic or analogy to the answer to reduce cognitive load.","type":"example"}
 {"question":"Edge case: What happens to SM-2 scheduling if a user skips reviews for 30 days?","answer":"The algorithm has no concept of 'overdue'. On next review the card is treated as due immediately; the interval is recalculated from the last recorded ease factor, potentially over-scheduling the next review.","type":"edge"}
 
-OUTPUT FORMAT — respond with ONLY JSONL (one JSON object per line, no fences, no commentary):
-{"question":"...","answer":"...","type":"definition|reasoning|misconception|example|edge"}
+OUTPUT FORMAT — respond with ONLY JSONL (exactly one JSON object per line, no backslashes, no code fences):
+{"question":"...","answer":"...","type":"definition"}
 
 TEXT:
 ${text}`;
@@ -52,20 +115,19 @@ ${text}`;
 export async function streamFlashcardsFromText(text: string) {
   const groq = getGroqClient();
 
-  const completion = await groq.chat.completions.create({
-    model: GROQ_MODEL,
+  const completion = await createChatCompletionWithFallback(groq, {
     messages: [
       {
         role: "system",
         content:
-          "You are a study assistant that outputs strictly valid JSONL flashcards.",
+          "You are a study assistant that outputs strictly valid JSONL flashcards. Each line must be a single standalone JSON object without markdown code blocks, backslashes, or trailing characters.",
       },
       {
         role: "user",
         content: buildFlashcardPrompt(text),
       },
     ],
-    temperature: 0.5,
+    temperature: 0.3,
     max_tokens: 4096,
     stream: true,
   });
@@ -93,8 +155,7 @@ Rules:
 - Return only JSON
 `;
 
-  const completion = await groq.chat.completions.create({
-    model: GROQ_MODEL,
+  const completion = await createChatCompletionWithFallback(groq, {
     messages: [
       {
         role: "system",
@@ -129,8 +190,7 @@ Instructions:
 Return plain text.
 `;
 
-  const completion = await groq.chat.completions.create({
-    model: GROQ_MODEL,
+  const completion = await createChatCompletionWithFallback(groq, {
     messages: [
       {
         role: "system",

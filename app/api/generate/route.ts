@@ -1,4 +1,4 @@
-import { streamFlashcardsFromText } from "@/lib/groq";
+import { streamFlashcardsFromText, sanitizeJsonLine } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { extractPdfText } from "@/lib/pdf";
 import { generatedFlashcardSchema, generatedFlashcardsSchema } from "@/types/flashcard";
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
             buffer = lines.pop() ?? "";
 
             for (const rawLine of lines) {
-              const line = rawLine.trim();
+              const line = sanitizeJsonLine(rawLine);
               if (!line) continue;
 
               try {
@@ -125,14 +125,21 @@ export async function POST(request: Request) {
             }
           }
 
-          const tail = buffer.trim();
+          const tail = sanitizeJsonLine(buffer);
           if (tail) {
             try {
               const parsed: unknown = JSON.parse(tail);
               const validated = generatedFlashcardSchema.safeParse(parsed);
               if (validated.success) {
-                cards.push(validated.data);
-                controller.enqueue(encodeEvent(encoder, { type: "card", card: validated.data }));
+                const isDuplicate = cards.some(
+                  (card) =>
+                    card.question.toLowerCase() === validated.data.question.toLowerCase() &&
+                    card.answer.toLowerCase() === validated.data.answer.toLowerCase(),
+                );
+                if (!isDuplicate) {
+                  cards.push(validated.data);
+                  controller.enqueue(encodeEvent(encoder, { type: "card", card: validated.data }));
+                }
               }
             } catch {
               // ignore non-JSON tail

@@ -18,7 +18,7 @@ export default function HomePage() {
       <div className="flex flex-col items-center gap-10 py-10 text-center lg:flex-row lg:items-center lg:text-left">
         <div className="flex-1">
           <span className="inline-block rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">
-            Powered by Groq · llama-3.3-70b
+            Powered by Groq LPU AI
           </span>
           <h1 className="font-display mt-4 text-5xl font-extrabold leading-[1.1] text-ink sm:text-6xl lg:text-7xl">
             Study{" "}

@@ -258,8 +258,12 @@ export default function DeckStudyClient({ deckId, initialCards }: DeckStudyClien
         ...prev,
         [currentCard.id]: data.explanation,
       }));
-    } catch {
-      setError("Unexpected error while generating explanation.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Unexpected error while generating explanation.",
+      );
     } finally {
       setExplainingCardId(null);
     }
