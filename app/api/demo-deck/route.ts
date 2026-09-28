@@ -54,12 +54,35 @@ const sampleCards = [
   },
 ];
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    let userId: string | null = null;
+    try {
+      const body = await request.json();
+      if (body && typeof body.userId === "string") {
+        userId = body.userId;
+      }
+    } catch {
+      // no body provided
+    }
+
+    if (userId) {
+      await prisma.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: {
+          id: userId,
+          name: `Learner-${userId.slice(-4).toUpperCase()}`,
+        },
+      });
+    }
+
     const deck = await prisma.deck.create({
       data: {
         title: "FlashAI Demo Deck",
         sourceFileName: "Demo",
+        userId: userId || undefined,
+        isPublic: false,
         cards: {
           create: sampleCards,
         },

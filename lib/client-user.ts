@@ -1,18 +1,42 @@
 import { z } from "zod";
 
-const USER_STORAGE_KEY = "flashai_user_id";
+export const USER_STORAGE_KEY = "flashai_user_id";
+
+function setCookie(name: string, value: string, days = 365) {
+  if (typeof document === "undefined") return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+function getCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 export function getOrCreateLocalUserId(): string {
   if (typeof window === "undefined") {
     return "local-user";
   }
 
-  const existing = localStorage.getItem(USER_STORAGE_KEY);
-  if (existing) return existing;
+  // Check localStorage first, fallback to cookie
+  let existing = localStorage.getItem(USER_STORAGE_KEY) || getCookie(USER_STORAGE_KEY);
+  if (existing) {
+    localStorage.setItem(USER_STORAGE_KEY, existing);
+    setCookie(USER_STORAGE_KEY, existing);
+    return existing;
+  }
 
   const created = `user-${crypto.randomUUID()}`;
   localStorage.setItem(USER_STORAGE_KEY, created);
+  setCookie(USER_STORAGE_KEY, created);
   return created;
+}
+
+export function switchLocalUserId(newUserId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_STORAGE_KEY, newUserId);
+  setCookie(USER_STORAGE_KEY, newUserId);
 }
 
 const bootstrapResponseSchema = z.object({

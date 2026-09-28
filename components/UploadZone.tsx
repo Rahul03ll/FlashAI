@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import DeckPreviewCard from "@/components/DeckPreviewCard";
+import { getOrCreateLocalUserId } from "@/lib/client-user";
 import { generatedFlashcardSchema } from "@/types/flashcard";
 
 type StreamEvent =
@@ -28,6 +29,7 @@ export default function UploadZone() {
   >([]);
   const [statusText, setStatusText] = useState<string>("Waiting for upload");
   const [showTruncatedWarning, setShowTruncatedWarning] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
 
   const skeletonCount = useMemo(() => Math.max(15 - previewCards.length, 0), [previewCards.length]);
 
@@ -86,9 +88,12 @@ export default function UploadZone() {
     setStatusText("Uploading PDF...");
 
     try {
+      const userId = getOrCreateLocalUserId();
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", title);
+      formData.append("userId", userId);
+      formData.append("isPublic", String(isPublic));
 
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -130,7 +135,12 @@ export default function UploadZone() {
     setError(null);
     setIsLoading(true);
     try {
-      const response = await fetch("/api/demo-deck", { method: "POST" });
+      const userId = getOrCreateLocalUserId();
+      const response = await fetch("/api/demo-deck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
       const data = await response.json();
       if (!response.ok) {
         setError(data.error ?? "Could not start demo mode.");
@@ -217,6 +227,16 @@ export default function UploadZone() {
               Choose PDF File
             </Button>
           </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer rounded-xl border border-black/10 bg-white/70 p-3 text-xs font-semibold text-ink transition-colors hover:bg-white">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="h-4 w-4 rounded border-2 border-ink text-accent accent-accent cursor-pointer"
+            />
+            <span>🌐 Share deck with Community Library (other students can discover & study it)</span>
+          </label>
 
           <Button type="button" onClick={handleGenerate} disabled={isLoading} className="w-full">
             {isLoading ? "Generating your flashcards..." : "Generate Deck"}

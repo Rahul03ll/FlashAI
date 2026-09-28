@@ -45,6 +45,8 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const maybeFile = formData.get("file");
     const deckTitleInput = formData.get("title");
+    const userIdInput = (formData.get("userId") as string | null) || null;
+    const isPublic = formData.get("isPublic") === "true";
 
     if (!(maybeFile instanceof File)) {
       return new Response(
@@ -160,10 +162,23 @@ export async function POST(request: Request) {
 
           const limitedCards = parsedFlashcards.data.slice(0, 20);
 
+          if (userIdInput) {
+            await prisma.user.upsert({
+              where: { id: userIdInput },
+              update: {},
+              create: {
+                id: userIdInput,
+                name: `Learner-${userIdInput.slice(-4).toUpperCase()}`,
+              },
+            });
+          }
+
           const deck = await prisma.deck.create({
             data: {
               title,
               sourceFileName: maybeFile.name,
+              userId: userIdInput || undefined,
+              isPublic,
               cards: {
                 create: limitedCards.map((card) => ({
                   question: card.question,

@@ -18,35 +18,41 @@ model User {
   displayName     String?
   lastStudiedDate DateTime?
   updatedAt       DateTime  @updatedAt
+  decks           Deck[]
 }
 
 model Deck {
-  id         String      @id @default(uuid())
-  title      String
+  id             String      @id @default(uuid())
+  title          String
   sourceFileName String?
-  shareToken String?     @unique
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  lastStudied DateTime?
-  cards      Flashcard[]
+  shareToken     String?     @unique
+  isPublic       Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  lastStudied    DateTime?
+  cards          Flashcard[]
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Flashcard {
-  id          String   @id @default(uuid())
-  question    String
-  answer      String
-  type        String   @default("definition")
-  difficultyScore Int  @default(0)
-  ease        Float    @default(2.5)
-  interval    Int      @default(1)
-  repetitions Int      @default(0)
-  dueDate     DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deckId      String
-  deck        Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  question        String
+  answer          String
+  type            String   @default("definition")
+  difficultyScore Int      @default(0)
+  ease            Float    @default(2.5)
+  interval        Int      @default(1)
+  repetitions     Int      @default(0)
+  dueDate         DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deckId          String
+  deck            Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  distractors     Json?
 
-@@index([deckId])
+  @@index([deckId])
   @@index([dueDate])
-  distractors   Json?
 }
