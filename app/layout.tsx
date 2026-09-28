@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Fredoka } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Navbar from "@/components/Navbar";
 import DbWarmup from "@/components/DbWarmup";
 import "./globals.css";
@@ -60,6 +61,7 @@ export default function RootLayout({
           <DbWarmup />
         
         </div>
+        <Analytics />
       </body>
     </html>
   );
