@@ -378,11 +378,6 @@ export default function DeckStudyClient({ deckId, initialCards }: DeckStudyClien
         </motion.div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <ConfidenceHeatmap cards={cards} />
-        <ReviewForecast cards={cards} />
-      </div>
-
       {currentCard ? (
         <AnimatePresence mode="wait">
           <motion.div
@@ -433,6 +428,12 @@ export default function DeckStudyClient({ deckId, initialCards }: DeckStudyClien
           </p>
         </div>
       )}
+
+      {/* Analytics & Retention Forecast */}
+      <div className="mt-12 grid gap-4 md:grid-cols-2">
+        <ConfidenceHeatmap cards={cards} />
+        <ReviewForecast cards={cards} />
+      </div>
 
 
     </section>

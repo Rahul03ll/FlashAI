@@ -177,26 +177,24 @@ Rules:
 export async function generateBetterExplanation(question: string, answer: string) {
   const groq = getGroqClient();
 
-  const prompt = `
-Explain the following concept in a clear, simple, and intuitive way.
+  const prompt = `Explain the following study flashcard concept in an intuitive, engaging, and structured way.
 
 Question: ${question}
 Answer: ${answer}
 
 Instructions:
-- Use simple language
-- Give examples if helpful
-- Explain WHY, not just WHAT
-- Keep it concise but insightful
-
-Return plain text.
-`;
+- Start with a single clear sentence summarizing the core insight.
+- Provide 2 to 3 structured bullet points (- **Key Takeaway**: explanation) explaining WHY this is true and HOW it works.
+- Include a practical analogy or concrete mini-example.
+- Highlight essential terms in **bold**.
+- Keep the entire explanation concise, friendly, and easy to scan in under 150 words.`;
 
   const completion = await createChatCompletionWithFallback(groq, {
     messages: [
       {
         role: "system",
-        content: "You are an expert tutor. Reply with plain text only.",
+        content:
+          "You are FlashAI's master AI tutor. You break down complex concepts into crystal-clear, structured explanations with markdown bullet points and bold key terms. Never output raw code fences or walls of text.",
       },
       {
         role: "user",

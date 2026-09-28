@@ -22,14 +22,21 @@ function StudyControls({
   ];
 
   return (
-    <div className="sticky bottom-2 z-10 mt-5 flex w-full flex-col gap-3 rounded-2xl bg-white/90 p-2 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+    <div className="sticky bottom-3 z-10 mt-5 grid w-full grid-cols-3 gap-2 sm:gap-3.5 rounded-2xl bg-white/95 p-2 sm:p-0 shadow-comic sm:shadow-none border-2 border-ink/20 sm:border-0 backdrop-blur-md sm:static sm:bg-transparent sm:backdrop-blur-none">
       {buttons.map(({ label, emoji, variant, kbd, handler, delay }) => (
-        <motion.div key={label} initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
-          <Button type="button" disabled={disabled} onClick={handler} variant={variant} className="w-full">
-            <span className="flex items-center justify-center gap-2">
-              {label} {emoji}
-              <kbd className="hidden rounded bg-black/15 px-1.5 py-0.5 font-mono text-xs sm:inline">{kbd}</kbd>
-            </span>
+        <motion.div key={label} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}>
+          <Button
+            type="button"
+            disabled={disabled}
+            onClick={handler}
+            variant={variant}
+            className="w-full flex items-center justify-center gap-1.5 px-2 py-3 text-xs sm:px-4 sm:py-3.5 sm:text-sm font-bold shadow-comic"
+          >
+            <span>{label}</span>
+            <span className="text-base sm:text-lg">{emoji}</span>
+            <kbd className="hidden sm:inline-block rounded bg-black/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink">
+              {kbd}
+            </kbd>
           </Button>
         </motion.div>
       ))}
