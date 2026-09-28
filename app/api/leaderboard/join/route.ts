@@ -26,14 +26,14 @@ export async function POST(request: Request) {
 
     const { userId, displayName } = parsed.data;
 
-    const existing = await prisma.user.findUnique({ where: { id: userId } });
-    if (!existing) {
-      return NextResponse.json({ error: "User not found." }, { status: 404 });
-    }
-
-    const user = await prisma.user.update({
+    const user = await prisma.user.upsert({
       where: { id: userId },
-      data: { displayName },
+      update: { displayName },
+      create: {
+        id: userId,
+        name: displayName,
+        displayName,
+      },
       select: { id: true, displayName: true, xp: true, streak: true },
     });
 

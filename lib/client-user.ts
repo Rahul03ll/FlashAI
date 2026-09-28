@@ -41,7 +41,8 @@ export async function bootstrapUser() {
   const user = parsed.data.user;
   return {
     id: user.id,
-    displayName: user.displayName ?? user.name ?? null,
+    name: user.name ?? `Learner-${user.id.slice(-4).toUpperCase()}`,
+    displayName: user.displayName ?? null,
     xp: user.xp,
     streak: user.streak,
     level: user.level,
