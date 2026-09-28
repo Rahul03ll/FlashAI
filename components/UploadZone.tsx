@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
+import DeckPreviewCard from "@/components/DeckPreviewCard";
 import { generatedFlashcardSchema } from "@/types/flashcard";
 
 type StreamEvent =
@@ -248,32 +249,55 @@ export default function UploadZone() {
       </Card>
 
       {(isLoading || previewCards.length > 0) && (
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.08 } },
-          }}
-          className="grid gap-3 sm:grid-cols-2"
-        >
-          {previewCards.map((card, index) => (
-            <motion.div
-              key={`${card.question}-${index}`}
-              variants={{ hidden: { opacity: 0, y: 40 }, show: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Card hover className="h-full">
-                <p className="text-xs font-semibold uppercase tracking-wide text-accent">Question</p>
-                <p className="mt-2 text-sm font-medium text-ink">{card.question}</p>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-mint">Answer</p>
-                <p className="mt-2 text-sm text-ink/75">{card.answer}</p>
-              </Card>
-            </motion.div>
-          ))}
+        <div className="mt-8 space-y-4">
+          <div className="flex flex-col gap-2 rounded-2xl border-2 border-ink bg-white/95 p-4 shadow-comic sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15 text-sm">
+                ⚡
+              </span>
+              <div>
+                <h3 className="font-display text-base font-bold text-ink sm:text-lg">
+                  Generated Cards ({previewCards.length})
+                </h3>
+                <p className="text-xs text-ink/60">
+                  {isLoading ? "Streaming live from Groq LLM..." : "Deck generation complete! Ready to study."}
+                </p>
+              </div>
+            </div>
 
-          {skeletonCount > 0 ? <LoadingSkeleton count={Math.min(skeletonCount, 6)} /> : null}
-        </motion.div>
+            {previewCards.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-mint/40 bg-mint/20 px-3 py-1 text-xs font-bold text-ink sm:self-auto">
+                <span className="inline-block h-2 w-2 rounded-full bg-mint animate-pulse" />
+                {previewCards.length} cards ready
+              </span>
+            )}
+          </div>
+
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.06 } },
+            }}
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            {previewCards.map((card, index) => (
+              <motion.div
+                key={`${card.question}-${index}`}
+                variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="h-full"
+              >
+                <DeckPreviewCard card={card} index={index} />
+              </motion.div>
+            ))}
+
+            {skeletonCount > 0 && isLoading ? (
+              <LoadingSkeleton count={Math.min(skeletonCount, 4)} />
+            ) : null}
+          </motion.div>
+        </div>
       )}
     </section>
   );

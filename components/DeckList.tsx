@@ -20,7 +20,11 @@ type DeckListProps = {
 
 function formatLastStudied(date: Date | null): string {
   if (!date) return "Not studied yet";
-  return `Last studied ${date.toLocaleDateString()}`;
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Studied today";
+  if (diffDays === 1) return "Studied yesterday";
+  return `Studied ${diffDays}d ago`;
 }
 
 export default function DeckList({ decks }: DeckListProps) {
@@ -41,27 +45,30 @@ export default function DeckList({ decks }: DeckListProps) {
       <Card className="border-dashed border-2 border-ink bg-white/70 p-8 text-center">
         <div className="text-5xl">📚</div>
         <h2 className="mt-3 font-display text-2xl font-bold text-ink">No decks yet</h2>
-        <p className="mt-2 text-sm text-ink/65">Upload your first PDF to generate a study deck.</p>
+        <p className="mt-2 text-sm text-ink/65">Upload your first PDF to generate an interactive study deck.</p>
         <div className="mt-4">
-          <Button variant="accent" onClick={() => window.location.href = '/upload'}>Upload a PDF</Button>
+          <Button variant="accent" onClick={() => (window.location.href = "/upload")}>
+            Upload a PDF
+          </Button>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4">
+      {/* Header and Search */}
+      <div className="flex flex-col gap-3 rounded-2xl border-2 border-ink bg-white/95 p-5 shadow-comic sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-ink">Your Decks</h2>
-          <p className="text-sm text-ink/60">
-            {decks.length} {decks.length === 1 ? "deck" : "decks"} · pick one to continue studying
+          <h2 className="font-display text-xl font-bold text-ink">Your Decks</h2>
+          <p className="text-xs text-ink/60">
+            {decks.length} {decks.length === 1 ? "study deck" : "study decks"} ready for spaced repetition
           </p>
         </div>
 
         {/* Search bar */}
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink/35">
+          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm">
             🔍
           </span>
           <input
@@ -69,42 +76,80 @@ export default function DeckList({ decks }: DeckListProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search decks…"
-            className="w-full rounded-full border border-black/10 bg-white/80 py-2 pl-8 pr-4 text-sm text-ink placeholder:text-ink/35 focus:border-accent/40 focus:outline-none focus:ring-2 focus:ring-accent/20 sm:w-56"
+            className="w-full rounded-full border-2 border-ink bg-white py-2 pl-9 pr-4 text-xs font-medium text-ink placeholder:text-ink/40 shadow-comic focus:outline-none sm:w-64"
           />
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-dashed border-black/15 py-6 text-center text-sm text-ink/50">
+        <div className="rounded-2xl border-2 border-dashed border-ink/20 bg-white/60 py-10 text-center text-sm text-ink/60">
           No decks match &ldquo;{query}&rdquo;
-        </p>
+        </div>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((deck) => (
             <div
               key={deck.id}
-              className="flex items-center justify-between rounded-2xl border border-black/10 bg-white/80 px-4 py-3 transition-all duration-300 ease-premium hover:-translate-y-1 hover:border-accent/50 hover:bg-white"
+              className="group relative flex flex-col justify-between rounded-2xl border-2 border-ink bg-white p-5 shadow-comic transition-all duration-300 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#0a0a0f]"
             >
-              <Link href={`/deck/${deck.id}`} className="min-w-0 flex-1">
-                <p className="font-medium text-ink">
-                  {query ? highlight(deck.title, query) : deck.title}
-                </p>
-                <p className="text-xs text-ink/50">{formatLastStudied(deck.lastStudied)}</p>
-                {deck.sourceFileName ? (
-                  <p className="text-xs text-ink/40">📄 {deck.sourceFileName}</p>
-                ) : null}
-              </Link>
-              <div className="ml-3 flex shrink-0 items-center gap-2">
-                <span className="rounded-full bg-accent/10 px-2 py-1 text-xs font-semibold text-accent">
-                  {deck.cardCount} cards
-                </span>
-                <DeleteDeckButton deckId={deck.id} deckTitle={deck.title} />
+              {/* Subtle stacked card deck edge */}
+              <div className="pointer-events-none absolute -inset-0.5 rounded-2xl border border-ink/10 bg-comic-yellow/10 -z-10 [transform:rotate(1.5deg)] transition-transform group-hover:[transform:rotate(2.5deg)]" />
+
+              <div>
+                {/* Top badges */}
+                <div className="flex items-center justify-between gap-2 border-b border-black/8 pb-3">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-0.5 text-xs font-bold text-accent">
+                    <span>🃏</span>
+                    <span>{deck.cardCount} cards</span>
+                  </span>
+
+                  <DeleteDeckButton deckId={deck.id} deckTitle={deck.title} />
+                </div>
+
+                {/* Title */}
+                <Link href={`/deck/${deck.id}`} className="mt-3 block">
+                  <h3 className="font-display text-base font-bold text-ink leading-snug transition-colors group-hover:text-accent sm:text-lg">
+                    {query ? highlight(deck.title, query) : deck.title}
+                  </h3>
+                </Link>
+
+                {/* Meta */}
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-ink/50 flex items-center gap-1.5">
+                    <span>🕒</span>
+                    <span>{formatLastStudied(deck.lastStudied)}</span>
+                  </p>
+                  {deck.sourceFileName ? (
+                    <p className="text-xs text-ink/40 truncate flex items-center gap-1.5">
+                      <span>📄</span>
+                      <span className="truncate">{deck.sourceFileName}</span>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Study Action CTA */}
+              <div className="mt-5 pt-3 border-t border-black/6 flex items-center justify-between">
+                <Link
+                  href={`/deck/${deck.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-comic-yellow px-4 py-1.5 text-xs font-bold text-ink shadow-comic transition-all hover:bg-comic-yellow/80 hover:translate-x-0.5"
+                >
+                  <span>Study Deck</span>
+                  <span>⚡</span>
+                </Link>
+
+                <Link
+                  href={`/quiz/${deck.id}`}
+                  className="text-xs font-semibold text-accent hover:underline"
+                >
+                  Quiz Mode →
+                </Link>
               </div>
             </div>
           ))}
-        </ul>
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
