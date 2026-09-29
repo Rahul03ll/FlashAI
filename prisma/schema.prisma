@@ -9,17 +9,31 @@ datasource db {
 }
 
 model User {
-  id              String    @id
+  id              String             @id
   name            String
-  points          Int       @default(0)
+  points          Int                @default(0)
   lastActiveDay   String?
-  xp              Int       @default(0)
-  streak          Int       @default(0)
+  xp              Int                @default(0)
+  streak          Int                @default(0)
   displayName     String?
+  email           String?            @unique
+  isGuest         Boolean            @default(true)
   lastStudiedDate DateTime?
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime           @updatedAt
   decks           Deck[]
 }
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  attempts  Int      @default(0)
+
+  @@index([email])
+}
+
 
 model Deck {
   id             String      @id @default(uuid())
@@ -27,6 +41,7 @@ model Deck {
   sourceFileName String?
   shareToken     String?     @unique
   isPublic       Boolean     @default(false)
+  upvotes        Int         @default(0)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   lastStudied    DateTime?

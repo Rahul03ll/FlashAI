@@ -15,6 +15,7 @@ export type DeckItem = {
   lastStudied: Date | null;
   sourceFileName?: string | null;
   isPublic?: boolean;
+  upvotes?: number;
   authorName?: string | null;
   userId?: string | null;
 };
@@ -45,8 +46,9 @@ export default function DeckList({
   const [query, setQuery] = useState("");
   const [cloningDeckId, setCloningDeckId] = useState<string | null>(null);
   const [myDecksState, setMyDecksState] = useState<DeckItem[]>(initialMyDecks ?? decks);
+  const [communityDecksState, setCommunityDecksState] = useState<DeckItem[]>(communityDecks);
 
-  const activeDeckList = activeTab === "my" ? myDecksState : communityDecks;
+  const activeDeckList = activeTab === "my" ? myDecksState : communityDecksState;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -58,6 +60,24 @@ export default function DeckList({
         d.authorName?.toLowerCase().includes(q),
     );
   }, [activeDeckList, query]);
+
+  async function handleUpvoteDeck(deckId: string) {
+    try {
+      const userId = getOrCreateLocalUserId();
+      const res = await fetch(`/api/deck/${deckId}/upvote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setCommunityDecksState((prev) =>
+        prev.map((d) => (d.id === deckId ? { ...d, upvotes: data.upvoteCount } : d))
+      );
+    } catch {
+      // silent fallback
+    }
+  }
 
   async function handleTogglePrivacy(deckId: string, currentPublicState: boolean) {
     try {
@@ -214,9 +234,20 @@ export default function DeckList({
                         <DeleteDeckButton deckId={deck.id} deckTitle={deck.title} />
                       </div>
                     ) : (
-                      <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-ink/60">
-                        👤 {deck.authorName || "Learner"}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleUpvoteDeck(deck.id)}
+                          className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700 transition-all hover:bg-rose-100 hover:scale-105 active:scale-95 shadow-xs"
+                          title="Upvote this community deck"
+                        >
+                          <span>❤️</span>
+                          <span>{deck.upvotes || 0}</span>
+                        </button>
+                        <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[11px] font-semibold text-ink/60">
+                          👤 {deck.authorName || "Learner"}
+                        </span>
+                      </div>
                     )}
                   </div>
 

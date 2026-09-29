@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { globalPresenceTracker } from "@/lib/presence";
 
 export async function GET() {
   try {
@@ -82,7 +83,7 @@ export async function GET() {
 
     return NextResponse.json({
       events: events.slice(0, 8),
-      liveCount: Math.max(activeLearners.length, 1),
+      liveCount: Math.max(globalPresenceTracker.getActiveCount(), activeLearners.length, 1),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error.";

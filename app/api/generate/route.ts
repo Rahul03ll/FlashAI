@@ -2,11 +2,9 @@ import { streamFlashcardsFromText, sanitizeJsonLine } from "@/lib/groq";
 import { prisma } from "@/lib/prisma";
 import { extractPdfText } from "@/lib/pdf";
 import { generatedFlashcardSchema, generatedFlashcardsSchema } from "@/types/flashcard";
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
-
-// Simple in-memory rate limiter: 5 req/min per IP
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 type StreamEvent =
   | { type: "card"; card: { question: string; answer: string; type: string } }
@@ -26,21 +24,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    // IP rate limiting
+    // Sliding-window IP rate limiting
     const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-    const now = Date.now();
-    let ipData = rateLimitMap.get(clientIp) || { count: 0, resetTime: now };
-    if (now - ipData.resetTime > 60000) {
-      ipData = { count: 0, resetTime: now };
+    const rateCheck = checkRateLimit(`gen:${clientIp}`, 5, 60_000);
+    const rateHeaders = getRateLimitHeaders(rateCheck, 5);
+
+    if (!rateCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          type: "error",
+          error: "Too many generation requests. Please wait a minute before generating another deck.",
+          retryAfter: rateCheck.retryAfterSec,
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...rateHeaders },
+        }
+      );
     }
-    if (ipData.count >= 5) {
-      return new Response(JSON.stringify({ error: "Too many requests, please wait a minute" }), {
-        status: 429,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    ipData.count += 1;
-    rateLimitMap.set(clientIp, ipData);
 
     const formData = await request.formData();
     const maybeFile = formData.get("file");

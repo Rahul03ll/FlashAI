@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Fredoka } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import DbWarmup from "@/components/DbWarmup";
+import LivePresenceTracker from "@/components/LivePresenceTracker";
 import "./globals.css";
 
 const inter = Inter({
@@ -58,7 +59,7 @@ export default function RootLayout({
           <Navbar />
           {children}
           <DbWarmup />
-        
+          <LivePresenceTracker />
         </div>
       </body>
     </html>

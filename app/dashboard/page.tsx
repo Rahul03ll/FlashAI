@@ -20,6 +20,7 @@ export default async function DashboardPage() {
     lastStudied: deck.lastStudied,
     sourceFileName: deck.sourceFileName,
     isPublic: deck.isPublic,
+    upvotes: deck.upvotes || 0,
     authorName: deck.user?.displayName || deck.user?.name || "You",
     userId: deck.userId,
   }));
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
     lastStudied: deck.lastStudied,
     sourceFileName: deck.sourceFileName,
     isPublic: deck.isPublic,
+    upvotes: deck.upvotes || 0,
     authorName: deck.user?.displayName || deck.user?.name || "Community Learner",
     userId: deck.userId,
   }));
